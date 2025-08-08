@@ -1,0 +1,132 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+	xmlns:camera="clr-namespace:Camera.MAUI;assembly=Camera.MAUI"
+	x:Class="LightLink.MainPage"
+	BackgroundColor="{DynamicResource SecondaryColor}">
+
+	<Grid>
+		<!-- This BoxView will cover the screen for screen-based transmission -->
+		<BoxView
+			x:Name="FlashScreen"
+			Color="Black"
+			IsVisible="False"
+			ZIndex="999" />
+
+		<ScrollView>
+			<VerticalStackLayout
+				Padding="30,0"
+				Spacing="25"
+				VerticalOptions="Center">
+
+				<!--<Label
+					Text="Light-Link"
+					Style="{StaticResource Headline}"
+					SemanticProperties.HeadingLevel="Level1"
+					HorizontalOptions="Center" />-->
+
+				<!--<Label
+					Text="Send messages using your phone's light!"
+					Style="{StaticResource SubHeadline}"
+					SemanticProperties.HeadingLevel="Level2"
+					HorizontalOptions="Center" />-->
+
+				<!-- Section for Sending Messages -->
+				<Border
+					Padding="15">
+					<VerticalStackLayout
+						Spacing="10">
+						<Label
+							Text="Sender"
+							FontSize="Large"
+							FontAttributes="Bold" />
+						<Entry
+							x:Name="MessageEntry"
+							Placeholder="Enter your message here"
+							Keyboard="Text"
+							ClearButtonVisibility="WhileEditing" />
+
+						<Label
+							x:Name="BinaryOutputLabel"
+							Text="Binary will appear here..."
+							IsVisible="false"
+							LineBreakMode="WordWrap" />
+
+						<Button
+							x:Name="SendButton"
+							Text="Send Message"
+							SemanticProperties.Hint="Converts message to binary and sends it via light"
+							Clicked="OnSendClicked"
+							HorizontalOptions="Fill" />
+					</VerticalStackLayout>
+				</Border>
+
+				<!-- Placeholder for Receiving Messages -->
+				<Border
+					Padding="15">
+					<VerticalStackLayout
+						Spacing="10">
+						<Label
+							Text="Receiver"
+							FontSize="Large"
+							FontAttributes="Bold" />
+
+						<!-- Camera View with ROI Overlay -->
+						<Grid
+							WidthRequest="300"
+							HeightRequest="225"
+							HorizontalOptions="Center">
+							
+							<!--camera goes here-->
+							<camera:CameraView
+								x:Name="cameraView"
+								HorizontalOptions="Fill"
+								VerticalOptions="Fill" />
+
+							<!-- This Border is the Region of Interest (ROI) -->
+							<Border
+								Stroke="Yellow"
+								StrokeThickness="2"
+								WidthRequest="50"
+								HeightRequest="50"
+								VerticalOptions="Center"
+								HorizontalOptions="Center">
+								<Label
+									Text="Aim Here"
+									TextColor="Yellow"
+									FontSize="10"
+									VerticalOptions="End"
+									HorizontalOptions="Center"
+									Margin="0,0,0,-15" />
+							</Border>
+						</Grid>
+
+						<!--<Button
+							x:Name="ReceiveButton"
+							Text="Start Receiving"
+							Clicked="OnReceiveClicked" />-->
+
+						<Label
+							Text="Live Binary:"
+							FontAttributes="Bold" />
+						<Label
+							x:Name="LiveBinaryLabel"
+							Text="..."
+							LineBreakMode="WordWrap"
+							MaxLines="3" />
+
+						<Label
+							Text="Received Message:"
+							FontAttributes="Bold" />
+						<Label
+							x:Name="ReceivedMessageLabel"
+							Text="[Message will appear here]"
+							FontSize="Medium" />
+					</VerticalStackLayout>
+				</Border>
+
+			</VerticalStackLayout>
+		</ScrollView>
+	</Grid>
+</ContentPage>

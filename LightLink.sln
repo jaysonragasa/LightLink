@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36212.18
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightLink", "LightLink\LightLink.csproj", "{5E1557D9-2582-475A-B1E4-B4FAF36BAC48}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Camera.MAUI", "Camera.MAUI\Camera.MAUI.csproj", "{549FBC74-1D3B-F9BF-CD48-9BD73B1625E4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5E1557D9-2582-475A-B1E4-B4FAF36BAC48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E1557D9-2582-475A-B1E4-B4FAF36BAC48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E1557D9-2582-475A-B1E4-B4FAF36BAC48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E1557D9-2582-475A-B1E4-B4FAF36BAC48}.Release|Any CPU.Build.0 = Release|Any CPU
+		{549FBC74-1D3B-F9BF-CD48-9BD73B1625E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{549FBC74-1D3B-F9BF-CD48-9BD73B1625E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{549FBC74-1D3B-F9BF-CD48-9BD73B1625E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{549FBC74-1D3B-F9BF-CD48-9BD73B1625E4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {385E7B15-792F-4E27-94FC-6747E95899E8}
+	EndGlobalSection
+EndGlobal
