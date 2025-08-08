@@ -365,6 +365,7 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
         cameraView.RefreshSnapshot(GetSnapShot(cameraView.AutoSnapShotFormat, true));
     }
 
+    DateTime start = DateTime.Now;
     private async void FrameReader_FrameArrived(MediaFrameReader sender, MediaFrameArrivedEventArgs args)
     {
         if (!snapping && cameraView != null && cameraView.AutoSnapShotSeconds > 0 && (DateTime.Now - cameraView.lastSnapshot).TotalSeconds >= cameraView.AutoSnapShotSeconds)
@@ -373,7 +374,6 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
         }
         else
         {
-
             fps++;
 
             var frame = frameReader.TryAcquireLatestFrame();
@@ -382,29 +382,29 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
                 return;
 
             //_ = Task.Run(() => ProcessFrameAsync(frame));
-
             await ProcessFrameAsync(frame);
 
-            if (fps >= cameraView.FrameRate)
+            if((DateTime.Now - start).TotalMilliseconds > TimeSpan.FromSeconds(1).TotalMilliseconds)
             {
+                start = DateTime.Now;
 				System.Diagnostics.Debug.WriteLine("FPS: " + fps);
 
-				if (cameraView.BarCodeDetectionEnabled)
-                {
-                    bool processQR = false;
-                    lock (cameraView.currentThreadsLocker)
-                    {
-                        if (cameraView.currentThreads < cameraView.BarCodeDetectionMaxThreads)
-                        {
-                            cameraView.currentThreads++;
-                            processQR = true;
-                        }
-                    }
-                    if (processQR)
-                    {
-                        ProcessQRImage(frame.VideoMediaFrame.SoftwareBitmap);
-                    }
-                }
+                //if (cameraView.BarCodeDetectionEnabled)
+                //{
+                //    bool processQR = false;
+                //    lock (cameraView.currentThreadsLocker)
+                //    {
+                //        if (cameraView.currentThreads < cameraView.BarCodeDetectionMaxThreads)
+                //        {
+                //            cameraView.currentThreads++;
+                //            processQR = true;
+                //        }
+                //    }
+                //    if (processQR)
+                //    {
+                //        ProcessQRImage(frame.VideoMediaFrame.SoftwareBitmap);
+                //    }
+                //}
 
                 fps = 0;
             }
