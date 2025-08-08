@@ -41,14 +41,26 @@ public class CameraView : View, ICameraView
     public static readonly BindableProperty AutoRecordingFileProperty = BindableProperty.Create(nameof(AutoRecordingFile), typeof(string), typeof(CameraView), string.Empty);
     public static readonly BindableProperty AutoStartRecordingProperty = BindableProperty.Create(nameof(AutoStartRecording), typeof(bool), typeof(CameraView), false, propertyChanged: AutoStartRecordingChanged);
 
-	public static readonly BindableProperty FrameRateProperty = BindableProperty.Create(nameof(FrameRate), typeof(int), typeof(CameraView), 24);
+	public static readonly BindableProperty BarCodeDetectionDelayProperty = BindableProperty.Create(nameof(BarCodeDetectionDelay), typeof(int), typeof(CameraView), 5);
 	/// <summary>
-	/// Indicates every how many frames the control tries to detect a barcode in the image. This is a bindable property.
+	/// Indicates how long will it take before the next barcode detection will start
+    /// Default is 5 seconds.
 	/// </summary>
-	public int FrameRate
+	public int BarCodeDetectionDelay
 	{
-		get { return (int)GetValue(FrameRateProperty); }
-		set { SetValue(FrameRateProperty, value); }
+		get { return (int)GetValue(BarCodeDetectionDelayProperty); }
+		set { SetValue(BarCodeDetectionDelayProperty, value); }
+	}
+
+	public static readonly BindableProperty FrameReceivedDelayProperty = BindableProperty.Create(nameof(FrameReceivedDelay), typeof(int), typeof(CameraView), 1500);
+	/// <summary>
+	/// Indicates how long will it take before it will send new image to OnFrameReceived event
+	/// Default is 200 ms.
+	/// </summary>
+	public int FrameReceivedDelay
+	{
+		get { return (int)GetValue(FrameReceivedDelayProperty); }
+		set { SetValue(FrameReceivedDelayProperty, value); }
 	}
 
 	/// <summary>
@@ -320,7 +332,7 @@ public class CameraView : View, ICameraView
 	/// </summary>
 	public static CameraView Current { get; set; }
 
-    internal DateTime lastSnapshot = DateTime.Now;
+	internal DateTime lastSnapshot = DateTime.Now;
     internal Size PhotosResolution = new(0, 0);
 
     public CameraView()

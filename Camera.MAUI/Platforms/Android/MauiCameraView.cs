@@ -25,7 +25,6 @@ internal class MauiCameraView: GridLayout
     private readonly CameraView cameraView;
     private IExecutorService executorService;
     private bool started = false;
-    private int frames = 0;
     private int fps = 0;
     private bool initiated = false;
     private bool snapping = false;
@@ -404,35 +403,71 @@ internal class MauiCameraView: GridLayout
         cameraView.RefreshSnapshot(GetSnapShot(cameraView.AutoSnapShotFormat, true));
     }
 
-    private void Timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+	DateTime start = DateTime.Now;
+	DateTime lastDTBarcodeScan = DateTime.Now;
+	DateTime lastDTFrameReceive = DateTime.Now;
+
+	private async void Timer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
     {
         if (!snapping && cameraView != null && cameraView.AutoSnapShotSeconds > 0 && (DateTime.Now - cameraView.lastSnapshot).TotalSeconds >= cameraView.AutoSnapShotSeconds)
         {
             Task.Run(() => RefreshSnapShot());
         }
-        else if (cameraView.BarCodeDetectionEnabled)
+        else
         {
             fps++;
-            if(fps >= cameraView.FrameRate)
+            if ((DateTime.Now - start).TotalMilliseconds > TimeSpan.FromSeconds(1).TotalMilliseconds)
             {
-				bool processQR = false;
-				lock (cameraView.currentThreadsLocker)
-				{
-					if (cameraView.currentThreads < cameraView.BarCodeDetectionMaxThreads)
-					{
-						cameraView.currentThreads++;
-						processQR = true;
-					}
-				}
-				if (processQR)
-				{
-					ProccessQR();
-					frames = 0;
-				}
+				start = DateTime.Now;
+				//System.Diagnostics.Debug.WriteLine("FPS: " + fps);
 				fps = 0;
             }
-        }
+
+			if (cameraView.BarCodeDetectionEnabled)
+            {
+				if ((DateTime.Now - lastDTBarcodeScan).TotalMilliseconds > TimeSpan.FromSeconds(cameraView.BarCodeDetectionDelay).TotalMilliseconds)
+                {
+                    lastDTBarcodeScan = DateTime.Now;
+
+					bool processQR = false;
+					lock (cameraView.currentThreadsLocker)
+					{
+						if (cameraView.currentThreads < cameraView.BarCodeDetectionMaxThreads)
+						{
+							cameraView.currentThreads++;
+							processQR = true;
+						}
+					}
+
+					if (processQR)
+						ProccessQR();
+				}
+            }
+
+			// send processed frame to OnFrameReceived
+			if ((DateTime.Now - lastDTFrameReceive).TotalMilliseconds > cameraView.FrameReceivedDelay)
+			{
+				lastDTFrameReceive = DateTime.Now;
+
+				var frame = TakeSnap();
+
+                if (frame == null)
+                    return;
+
+                ////_ = Task.Run(() => ProcessFrameAsync(frame));
+                await ProcessFrameAsync(frame);
+            }
+		}
     }
+
+    private async Task ProcessFrameAsync(Bitmap bitmap)
+    {
+		// Get raw pixel bytes
+		byte[] pixelData = await ConvertBitmapToByteArray(bitmap, Bitmap.CompressFormat.Jpeg);
+
+		// 🔥 Send frame to CameraView (you can make an event for this)
+		cameraView.OnFrameReceived(pixelData, bitmap.Width, bitmap.Height);
+	}
 
     private Bitmap TakeSnap()
     {
@@ -460,7 +495,20 @@ internal class MauiCameraView: GridLayout
         catch { }
         return bitmap;
     }
-    internal async Task<System.IO.Stream> TakePhotoAsync(ImageFormat imageFormat)
+
+	private async Task<byte[]> ConvertBitmapToByteArray(Bitmap bitmap, Bitmap.CompressFormat format, int quality = 90)
+	{
+		if (bitmap == null)
+			return null;
+
+		using (var ms = new MemoryStream())
+		{
+			bitmap.Compress(format, quality, ms);
+			return await Task.FromResult(ms.ToArray());
+		}
+	}
+
+	internal async Task<System.IO.Stream> TakePhotoAsync(ImageFormat imageFormat)
     {
         MemoryStream stream = null;
         if (started && !recording)

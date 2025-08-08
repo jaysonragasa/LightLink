@@ -3,11 +3,20 @@ using LightLink.Common;
 
 namespace LightLink
 {
+	public enum TransmitterType
+	{
+		Flash, Screen
+	}
+	public enum BitState
+	{
+		Off, On
+	}
+
     public partial class MainPage : ContentPage
     {
 		private bool isTransmitting = false;
-		// Define the duration for each bit (in milliseconds)
-		private const int BitDuration = 250;
+		private const int OnBitDuration = 400;
+		private const int OffBitDuration = 600;
 
 		public MainPage()
 		{
@@ -20,13 +29,6 @@ namespace LightLink
 		protected override async void OnAppearing()
 		{
 			base.OnAppearing();
-
-			//cameraView.Camera = cameraView.Cameras.First();
-			//var result = await cameraView.StartCameraAsync();
-			//if (result == CameraResult.Success)
-			//{
-
-			//}
 		}
 
 		private void CameraView_CamerasLoaded(object sender, EventArgs e)
@@ -145,20 +147,10 @@ namespace LightLink
 			// A brief flash to signal the start of transmission
 			await Flashlight.Default.TurnOnAsync();
 			await Task.Delay(100);
-			await Flashlight.Default.TurnOffAsync();
-			await Task.Delay(500); // Wait before starting
 
 			foreach (char bit in binaryMessage)
 			{
-				if (bit == '1')
-				{
-					await Flashlight.Default.TurnOnAsync();
-				}
-				else // bit == '0'
-				{
-					await Flashlight.Default.TurnOffAsync();
-				}
-				await Task.Delay(BitDuration);
+				await TransmitMessage(TransmitterType.Screen, bit == '1' ? BitState.On : BitState.Off);
 			}
 		}
 
@@ -172,20 +164,60 @@ namespace LightLink
 			// A brief flash to signal the start
 			FlashScreen.Color = Colors.White;
 			await Task.Delay(100);
-			FlashScreen.Color = Colors.Black;
-			await Task.Delay(500); // Wait before starting
 
 			foreach (char bit in binaryMessage)
 			{
-				if (bit == '1')
-				{
-					FlashScreen.Color = Colors.White;
-				}
-				else // bit == '0'
-				{
-					FlashScreen.Color = Colors.Black;
-				}
-				await Task.Delay(BitDuration);
+				await TransmitMessage(TransmitterType.Screen, bit == '1' ? BitState.On : BitState.Off);
+			}
+		}
+
+		private async Task TransmitMessage(TransmitterType type, BitState state)
+		{
+			System.Diagnostics.Debug.WriteLine("Sending: " + state);
+
+			switch(type)
+			{
+				case TransmitterType.Screen:
+					{
+						switch(state)
+						{
+							case BitState.On:
+								{
+									FlashScreen.Color = Colors.White;
+									await Task.Delay(OnBitDuration);
+								}
+								break;
+
+								case BitState.Off:
+								{
+									FlashScreen.Color = Colors.Black;
+									await Task.Delay(OffBitDuration);
+								}
+								break;
+						}
+					}
+					break;
+
+				case TransmitterType.Flash:
+					{
+						switch (state)
+						{
+							case BitState.On:
+								{
+									await Flashlight.Default.TurnOnAsync();
+									await Task.Delay(OnBitDuration);
+								}
+								break;
+
+							case BitState.Off:
+								{
+									await Flashlight.Default.TurnOffAsync();
+									await Task.Delay(OffBitDuration);
+								}
+								break;
+						}
+					}
+					break;
 			}
 		}
 	}

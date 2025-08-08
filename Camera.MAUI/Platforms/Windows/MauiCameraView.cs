@@ -1,4 +1,5 @@
-﻿using Microsoft.Maui.Controls;
+﻿using ABI.System.ComponentModel;
+using Microsoft.Maui.Controls;
 using Microsoft.UI.Xaml.Controls;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -25,7 +26,6 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
     private bool snapping = false;
     private bool started = false;
     private Microsoft.UI.Xaml.FlowDirection flowDirection = Microsoft.UI.Xaml.FlowDirection.LeftToRight;
-    private int frames = 0;
     private int fps = 0;
     private bool initiated = false;
     private bool recording = false;
@@ -33,6 +33,7 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
     bool mediaLoaded = false;
 
     private readonly CameraView cameraView;
+
     public MauiCameraView(CameraView cameraView)
     {
         this.cameraView = cameraView;
@@ -62,6 +63,7 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
             if (mediaElement != null) mediaElement.FlowDirection = flowDirection;
         }
     }
+
     internal void SetZoomFactor(float zoom)
     {
         if (cameraView.Camera != null && frameSource != null && frameSource.Controller.VideoDeviceController.ZoomControl.Supported)
@@ -69,6 +71,7 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
             frameSource.Controller.VideoDeviceController.ZoomControl.Value = Math.Clamp(zoom, cameraView.Camera.MinZoomFactor, cameraView.Camera.MaxZoomFactor);
         }
     }
+
     internal void ForceAutoFocus()
     {
         if (cameraView.Camera != null && frameSource != null && frameSource.Controller.VideoDeviceController.FocusControl.Supported)
@@ -77,6 +80,7 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
             frameSource.Controller.VideoDeviceController.FocusControl.SetPresetAsync(FocusPreset.Auto).GetAwaiter().GetResult();
         }
     }
+
     internal void UpdateFlashMode()
     {
         if (frameSource != null && cameraView != null)
@@ -100,6 +104,7 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
             }
         }
     }
+
     internal void UpdateTorch()
     {
         if (frameSource != null && cameraView != null)
@@ -108,6 +113,7 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
                 frameSource.Controller.VideoDeviceController.TorchControl.Enabled = cameraView.TorchEnabled;
         }
     }
+
     private void InitDevices()
     {
         if (!initiated)
@@ -178,6 +184,7 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
             }
         }
     }
+
     internal async Task<CameraResult> StartRecordingAsync(string file, Size Resolution)
     {
         CameraResult result = CameraResult.Success;
@@ -245,10 +252,12 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
 
         return result;
     }
+
     internal async Task<CameraResult> StopRecordingAsync()
     {
         return await StartCameraAsync(cameraView.PhotosResolution);
     }
+
     internal async Task<CameraResult> StartCameraAsync(Size PhotosResolution)
     {
         CameraResult result = CameraResult.Success;
@@ -273,7 +282,7 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
                                                                                           && source.Value.Info.SourceKind == MediaFrameSourceKind.Color).Value;
                     if (frameSource != null)
                     {
-                        frames = 0;
+                        fps = 0;
                         UpdateTorch();
                         UpdateMirroredImage();
                         SetZoomFactor(cameraView.ZoomFactor);
@@ -342,6 +351,7 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
             result = CameraResult.NotInitiated;
         return result;
     }
+
     private void ProcessQRImage(SoftwareBitmap simg)
     {
         if (simg != null)
@@ -360,12 +370,16 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
             });
         }
     }
+
     private void RefreshSnapShot()
     {
         cameraView.RefreshSnapshot(GetSnapShot(cameraView.AutoSnapShotFormat, true));
     }
 
     DateTime start = DateTime.Now;
+    DateTime lastDTBarcodeScan = DateTime.Now;
+    DateTime lastDTFrameReceive = DateTime.Now;
+
     private async void FrameReader_FrameArrived(MediaFrameReader sender, MediaFrameArrivedEventArgs args)
     {
         if (!snapping && cameraView != null && cameraView.AutoSnapShotSeconds > 0 && (DateTime.Now - cameraView.lastSnapshot).TotalSeconds >= cameraView.AutoSnapShotSeconds)
@@ -376,37 +390,57 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
         {
             fps++;
 
-            var frame = frameReader.TryAcquireLatestFrame();
-
-            if (frame == null || frame.VideoMediaFrame == null)
-                return;
-
-            //_ = Task.Run(() => ProcessFrameAsync(frame));
-            await ProcessFrameAsync(frame);
-
-            if((DateTime.Now - start).TotalMilliseconds > TimeSpan.FromSeconds(1).TotalMilliseconds)
+            // fps counter
+            if ((DateTime.Now - start).TotalMilliseconds > TimeSpan.FromSeconds(1).TotalMilliseconds)
             {
                 start = DateTime.Now;
-				System.Diagnostics.Debug.WriteLine("FPS: " + fps);
+                //System.Diagnostics.Debug.WriteLine("FPS: " + fps);
 
-                //if (cameraView.BarCodeDetectionEnabled)
-                //{
-                //    bool processQR = false;
-                //    lock (cameraView.currentThreadsLocker)
-                //    {
-                //        if (cameraView.currentThreads < cameraView.BarCodeDetectionMaxThreads)
-                //        {
-                //            cameraView.currentThreads++;
-                //            processQR = true;
-                //        }
-                //    }
-                //    if (processQR)
-                //    {
-                //        ProcessQRImage(frame.VideoMediaFrame.SoftwareBitmap);
-                //    }
-                //}
+                // do something here?
 
                 fps = 0;
+            }
+
+            // start barcode scanning
+            if (cameraView.BarCodeDetectionEnabled)
+            {
+                if ((DateTime.Now - lastDTBarcodeScan).TotalMilliseconds > TimeSpan.FromSeconds(cameraView.BarCodeDetectionDelay).TotalMilliseconds)
+                {
+                    lastDTBarcodeScan = DateTime.Now;
+
+                    bool processQR = false;
+                    lock (cameraView.currentThreadsLocker)
+                    {
+                        if (cameraView.currentThreads < cameraView.BarCodeDetectionMaxThreads)
+                        {
+                            cameraView.currentThreads++;
+                            processQR = true;
+                        }
+                    }
+                    if (processQR)
+                    {
+                        var frame = frameReader.TryAcquireLatestFrame();
+
+                        if (frame == null || frame.VideoMediaFrame == null)
+                            return;
+
+                        ProcessQRImage(frame.VideoMediaFrame.SoftwareBitmap);
+                    }
+                }
+            }
+
+            // send processed frame to OnFrameReceived
+            if ((DateTime.Now - lastDTFrameReceive).TotalMilliseconds > cameraView.FrameReceivedDelay)
+            {
+                lastDTFrameReceive = DateTime.Now;
+
+                var frame = frameReader.TryAcquireLatestFrame();
+
+                if (frame == null || frame.VideoMediaFrame == null)
+                    return;
+
+                //_ = Task.Run(() => ProcessFrameAsync(frame));
+                await ProcessFrameAsync(frame);
             }
         }
     }
@@ -456,35 +490,26 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
         return rawPixels;
     }
 
-	private async Task<byte[]> EncodedBytes(SoftwareBitmap soft, Guid encoderId)
-	{
-		byte[] array = null;
+    private async Task<byte[]> EncodedBytes(SoftwareBitmap soft, Guid encoderId)
+    {
+        byte[] array = null;
 
-		using (var ms = new InMemoryRandomAccessStream())
-		{
-			BitmapEncoder encoder = await BitmapEncoder.CreateAsync(encoderId, ms);
-			encoder.SetSoftwareBitmap(soft);
+        using (var ms = new InMemoryRandomAccessStream())
+        {
+            BitmapEncoder encoder = await BitmapEncoder.CreateAsync(encoderId, ms);
+            encoder.SetSoftwareBitmap(soft);
 
-			try
-			{
-				await encoder.FlushAsync();
-			}
-			catch (Exception ex) { return new byte[0]; }
+            try
+            {
+                await encoder.FlushAsync();
+            }
+            catch (Exception ex) { return new byte[0]; }
 
-			array = new byte[ms.Size];
-			await ms.ReadAsync(array.AsBuffer(), (uint)ms.Size, InputStreamOptions.None);
-		}
-		return array;
-	}
-
-	//// COM interface for direct byte access
-	//[ComImport]
- //   [Guid("5B0D3235-4DBA-4D44-865E-8F1D0E4FD04D")]
- //   [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
- //   unsafe interface IMemoryBufferByteAccess
- //   {
- //       void GetBuffer(out byte* buffer, out uint capacity);
- //   }
+            array = new byte[ms.Size];
+            await ms.ReadAsync(array.AsBuffer(), (uint)ms.Size, InputStreamOptions.None);
+        }
+        return array;
+    }
 
     internal async Task<CameraResult> StopCameraAsync()
     {
@@ -525,11 +550,13 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
 
         return result;
     }
+
     internal void DisposeControl()
     {
         if (started) StopCameraAsync().Wait();
         Dispose();
     }
+
     internal async Task<Stream> TakePhotoAsync(ImageFormat imageFormat)
     {
         /*
@@ -602,6 +629,7 @@ public sealed partial class MauiCameraView : UserControl, IDisposable
         GC.Collect();
         return null;
     }
+
     internal ImageSource GetSnapShot(ImageFormat imageFormat, bool auto = false)
     {
         ImageSource result = null;
